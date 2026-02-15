@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 29 78 216;
+    --color-background: 243 244 246;
+    --color-surface: 255 255 255;
+    --color-text: 31 41 55;
+  }
+
+  .dark {
+    --color-primary: 96 165 250;
+    --color-background: 17 24 39;
+    --color-surface: 31 41 55;
+    --color-text: 243 244 246;
+  }
+
+  body {
+    @apply font-sans bg-[rgb(var(--color-background))] text-[rgb(var(--color-text))] transition-colors duration-500;
+  }
+}
