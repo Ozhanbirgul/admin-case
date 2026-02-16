@@ -1,41 +1,61 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useGetProductsQuery, useGetCategoriesTreeQuery } from "../services/api";
 import ProductRow from "./ProductRow";
 import Pagination from "./Pagination";
+import ProductDetailModal from "./ProductDetailModal";
+import ConfirmDelete from "./ConfirmDelete";
 
 const ProductsByCategory = ({ categoryIds }) => {
   const [page, setPage] = useState(1);
-  const itemsPerPage = 10; // frontend pagination için
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [deleteProduct, setDeleteProduct] = useState(null);
 
-  // Tüm ürünleri tek seferde çekiyoruz (limit yüksek)
-  const { data: productData, error, isLoading } = useGetProductsQuery({ page: 1, limit: 1000 });
+  const itemsPerPage = 10;
+
+  const { data: productData, error, isLoading } =
+    useGetProductsQuery({ page: 1, limit: 1000 });
+
   const { data: categoriesData } = useGetCategoriesTreeQuery();
 
-  // Kategori map oluşturalım
-  const categoryMap = {};
-  const buildCategoryMap = (categories) => {
-    categories.forEach((cat) => {
-      categoryMap[cat.id] = cat.name;
-      if (cat.children && cat.children.length > 0) buildCategoryMap(cat.children);
-    });
-  };
-  if (categoriesData) buildCategoryMap(categoriesData);
+  // ✅ categoryMap oluştur
+  const categoryMap = useMemo(() => {
+    const map = {};
+
+    const buildMap = (categories) => {
+      categories.forEach((cat) => {
+        map[cat.id] = cat.name;
+        if (cat.children?.length > 0) buildMap(cat.children);
+      });
+    };
+
+    if (categoriesData) buildMap(categoriesData);
+
+    return map;
+  }, [categoriesData]);
 
   if (isLoading) return <p>Yükleniyor...</p>;
   if (error) return <p>Bir hata oluştu!</p>;
 
-  // Sadece seçili kategori ID’lerine ait ürünleri filtrele
-  const filteredProducts = productData?.data.filter((p) =>
-    categoryIds.includes(p.category_id)
-  ) || [];
+  // ✅ Seçili kategoriye göre filtrele
+  const filteredProducts =
+    productData?.data.filter((p) =>
+      categoryIds.includes(p.category_id)
+    ) || [];
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
-
-  // Frontend pagination slice
   const startIndex = (page - 1) * itemsPerPage;
-  const currentProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+  const currentProducts = filteredProducts.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
-  if (filteredProducts.length === 0) return <p>Bu kategoriye ait ürün bulunamadı.</p>;
+  const handleDeleteConfirmed = (id) => {
+    setDeleteProduct(null);
+    // burada istersen backend delete mutation da ekleyebilirsin
+  };
+
+  if (filteredProducts.length === 0)
+    return <p>Bu kategoriye ait ürün bulunamadı.</p>;
 
   return (
     <div>
@@ -51,12 +71,41 @@ const ProductsByCategory = ({ categoryIds }) => {
         </thead>
         <tbody>
           {currentProducts.map((product) => (
-            <ProductRow key={product.id} product={product} categoryMap={categoryMap} />
+            <ProductRow
+              key={product.id}
+              product={product}
+              categoryMap={categoryMap}
+              onView={(p) => setSelectedProduct(p)}     // 🔥 EKLENDİ
+              onDelete={(p) => setDeleteProduct(p)}     // 🔥 EKLENDİ
+            />
           ))}
         </tbody>
       </table>
 
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+      />
+
+      {/* ✅ Detay Modal */}
+      {selectedProduct && (
+        <ProductDetailModal
+          product={selectedProduct}
+          categoryMap={categoryMap}
+          onClose={() => setSelectedProduct(null)}
+        />
+      )}
+
+      {/* ✅ Silme Modal */}
+      <ConfirmDelete
+        isOpen={!!deleteProduct}
+        itemName={deleteProduct?.title || ""}
+        onCancel={() => setDeleteProduct(null)}
+        onConfirm={() =>
+          handleDeleteConfirmed(deleteProduct.id)
+        }
+      />
     </div>
   );
 };

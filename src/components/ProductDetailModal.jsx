@@ -3,6 +3,7 @@ import { FiX } from "react-icons/fi";
 
 const ProductDetailModal = ({ product, categoryMap, onClose }) => {
   if (!product) return null;
+  console.log(product);
 
   return (
     <BaseModal isOpen={!!product} onClose={onClose}>
@@ -20,7 +21,7 @@ const ProductDetailModal = ({ product, categoryMap, onClose }) => {
       <div className="space-y-2 text-gray-700 dark:text-gray-300">
         <p>
           <strong>Kategori:</strong>{" "}
-          {categoryMap?.[product.categoryId] || "Bilinmiyor"}
+          {categoryMap?.[product.category_id] || "Bilinmiyor"}
         </p>
 
         <p>
